@@ -1,0 +1,24 @@
+<strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <string id="AppName">HeuresCreuses</string>
+    <string id="Settings">Paramètres</string>
+    <string id="Credits">Crédits</string>
+    <string id="Periods">Périodes</string>
+    <string id="Add">Ajouter</string>
+    <string id="AddPeriod">Ajouter une période</string>
+    <string id="MaximumPeriods">Nombre maximal de périodes</string>
+    <string id="Start">Début</string>
+    <string id="End">Fin</string>
+    <string id="Save">Enregistrer</string>
+    <string id="Delete">Supprimer</string>
+    <string id="DeleteConfirmation">Supprimer cette période ?</string>
+    <string id="Cancel">Annuler</string>
+    <string id="CreditTitle">Heures Creuses</string>
+    <string id="CreditAuthor">Created by Arnaud Boidard</string>
+    <string id="CreditDescription">Off-peak hours schedule</string>
+    <string id="NoPeriods">Aucune période configurée</string>
+    <string id="PeriodCountPrefix">Périodes : </string>
+    <string id="StatusActive">Heures creuses en cours</string>
+    <string id="RemainingTimePrefix">Temps restant : </string>
+    <string id="NextOffPeakPrefix">Prochaine période d'heures creuses dans </string>
+    <string id="HourSuffix"> h </string>
+</strings>
