@@ -56,10 +56,6 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
         return minutes + (half - remainder);
     }
 
-    function isFrench() as Boolean {
-        return System.getDeviceSettings().systemLanguage == System.LANGUAGE_FRE;
-    }
-
     function onUpdate(dc as Dc) as Void {
         var width  = dc.getWidth();
         var height = dc.getHeight();
@@ -74,17 +70,16 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
         var text;
         var periods = settings.getPeriods();
         if (periods.size() == 0) {
-            text = isFrench() ? "Aucune période configurée" : "No periods configured";
+            text = WatchUi.loadResource(Rez.Strings.NoPeriods) as String;
         } else if (isHeuresCreuses(nowMinutes)) {
-            text = isFrench() ? "Heures creuses en cours" : "Off-peak hours active";
+            text = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         } else {
             var minutesLeft = minutesUntilNextHeuresCreuses(nowMinutes);
             var minutesRounded = roundUpToHalfHour(minutesLeft);
             var h = minutesRounded / 60;
             var m = minutesRounded % 60;
-            var nextPrefix = isFrench() ?
-                "Prochaine période d'heures creuses dans " : "Next off-peak period in ";
-            var hourSuffix = isFrench() ? " h " : "h";
+            var nextPrefix = WatchUi.loadResource(Rez.Strings.NextOffPeakPrefix) as String;
+            var hourSuffix = WatchUi.loadResource(Rez.Strings.HourSuffix) as String;
             text = nextPrefix + h.toString() + hourSuffix +
                    ((m == 0) ? "" : (m < 10 ? "0" : "") + m.toString());
         }

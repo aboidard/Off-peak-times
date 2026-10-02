@@ -1,5 +1,8 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
+import Toybox.System;
+import Toybox.Timer;
 import Toybox.WatchUi;
 
 function createIconButton(x as Number, y as Number, size as Number, behavior as Symbol) as WatchUi.Button {
@@ -141,29 +144,254 @@ class TimePickerView extends WatchUi.View {
     }
 }
 
-// Vertical wheel factory for a 0..count-1 numeric picker column (native Picker style).
-class TimeUnitPickerFactory extends WatchUi.PickerFactory {
-    var itemCount as Number;
+// Two side-by-side wheels: hours on the left (index 1), minutes on the right (index 0).
+class WheelPickerView extends WatchUi.View {
+    const FRICTION = 0.92;
+    const TICK_MS = 33;
 
-    function initialize(count as Number) {
-        PickerFactory.initialize();
-        itemCount = count;
+    var titleText as String;
+    var positions as Array<Float>;
+    var counts as Array<Number>;
+    var activeWheel as Number;
+    var velocity as Float;
+    var lastY as Number;
+    var lastTime as Number;
+    var timer as Timer.Timer or Null;
+    var width as Number;
+    var height as Number;
+    var rowHeight as Float;
+    var centerY as Number;
+    var buttonY as Number;
+
+    function initialize(title as String, hour as Number, minute as Number) {
+        View.initialize();
+        titleText = title;
+        positions = [minute.toFloat(), hour.toFloat()];
+        counts = [60, 24];
+        activeWheel = 1;
+        velocity = 0.0;
+        lastY = 0;
+        lastTime = 0;
+        timer = null;
+        width = 0;
+        height = 0;
+        rowHeight = 80.0;
+        centerY = 0;
+        buttonY = 0;
     }
 
-    function getDrawable(item as Number, isSelected as Boolean) as WatchUi.Drawable or Null {
-        var text = item < 10 ? "0" + item.toString() : item.toString();
-        return new WatchUi.Text({:text => text, :color => Graphics.COLOR_WHITE,
-                                  :font => Graphics.FONT_NUMBER_MEDIUM,
-                                  :locX => WatchUi.LAYOUT_HALIGN_CENTER,
-                                  :locY => WatchUi.LAYOUT_VALIGN_CENTER});
+    function onLayout(dc as Dc) as Void {
+        updateGeometry(dc.getWidth(), dc.getHeight());
     }
 
-    function getSize() as Number {
-        return itemCount;
+    function updateGeometry(w as Number, h as Number) as Void {
+        width = w;
+        height = h;
+        rowHeight = h * 0.19;
+        centerY = h / 2;
+        buttonY = h * 89 / 100;
     }
 
-    function getValue(item as Number) as Lang.Object or Null {
-        return item;
+    function onHide() as Void {
+        stopTimer();
+    }
+
+    function getValue(wheel as Number) as Number {
+        return Math.round(positions[wheel]).toNumber() % counts[wheel];
+    }
+
+    function formatValue(value as Number) as String {
+        return value < 10 ? "0" + value.toString() : value.toString();
+    }
+
+    function wheelX(wheel as Number) as Number {
+        return wheel == 0 ? width * 7 / 10 : width * 3 / 10;
+    }
+
+    function normalize(wheel as Number) as Void {
+        var count = counts[wheel].toFloat();
+        var p = positions[wheel];
+        while (p < 0) {
+            p += count;
+        }
+        while (p >= count) {
+            p -= count;
+        }
+        positions[wheel] = p;
+    }
+
+    function onUpdate(dc as Dc) as Void {
+        updateGeometry(dc.getWidth(), dc.getHeight());
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.clear();
+
+        var half = (rowHeight * 1.5).toNumber();
+        var top = centerY - half;
+        var colWidth = width * 36 / 100;
+
+        // Active column highlight
+        dc.setColor(0x16301E, 0x16301E);
+        dc.fillRectangle(wheelX(activeWheel) - colWidth / 2, top, colWidth, half * 2);
+
+        // Selection band
+        dc.setColor(0x262D38, 0x262D38);
+        dc.fillRectangle(0, centerY - (rowHeight / 2).toNumber(), width, rowHeight.toNumber());
+
+        // Title and underline
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(width / 2, height * 4 / 100, Graphics.FONT_SMALL, titleText, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(0x808080, 0x808080);
+        dc.drawLine(width * 19 / 100, height * 15 / 100, width * 81 / 100, height * 15 / 100);
+
+        for (var wheel = 0; wheel < 2; wheel += 1) {
+            drawWheel(dc, wheel, top, half * 2);
+        }
+
+        // Active indicator under the selected value
+        dc.setColor(0x3CE070, 0x3CE070);
+        dc.fillRectangle(wheelX(activeWheel) - colWidth / 2, centerY + (rowHeight / 2).toNumber() - 3, colWidth, 3);
+
+        dc.setClip(0, 0, width, height);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(width / 2, centerY, Graphics.FONT_NUMBER_MEDIUM, ":",
+                    Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        drawCheckIcon(dc, width / 2, buttonY);
+    }
+
+    function drawWheel(dc as Dc, wheel as Number, top as Number, clipHeight as Number) as Void {
+        var pos = positions[wheel];
+        var base = Math.round(pos).toNumber();
+        var count = counts[wheel];
+        var x = wheelX(wheel);
+        dc.setClip(0, top, width, clipHeight);
+        for (var k = -2; k <= 2; k += 1) {
+            var offset = (base + k) - pos;
+            var y = centerY + (offset * rowHeight).toNumber();
+            var value = ((base + k) % count + count) % count;
+            var isCenter = offset > -0.5 and offset < 0.5;
+            dc.setColor(isCenter ? Graphics.COLOR_WHITE : 0x9A9A9A, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x, y, isCenter ? Graphics.FONT_NUMBER_MEDIUM : Graphics.FONT_MEDIUM,
+                        formatValue(value), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        }
+    }
+
+    function beginDrag(x as Number, y as Number) as Void {
+        stopTimer();
+        activeWheel = x < width / 2 ? 1 : 0;
+        velocity = 0.0;
+        lastY = y;
+        lastTime = System.getTimer();
+        WatchUi.requestUpdate();
+    }
+
+    function dragTo(y as Number) as Void {
+        var now = System.getTimer();
+        var dt = now - lastTime;
+        var delta = (lastY - y) / rowHeight;
+        positions[activeWheel] += delta;
+        normalize(activeWheel);
+        if (dt > 0) {
+            velocity = 0.5 * velocity + 0.5 * (delta / dt);
+        }
+        lastY = y;
+        lastTime = now;
+        WatchUi.requestUpdate();
+    }
+
+    function endDrag() as Void {
+        if (System.getTimer() - lastTime > 100) {
+            velocity = 0.0;
+        }
+        timer = new Timer.Timer();
+        timer.start(method(:onTick), TICK_MS, true);
+    }
+
+    function onTick() as Void {
+        var step = velocity * TICK_MS;
+        if (step > 0.05 or step < -0.05) {
+            positions[activeWheel] += step;
+            normalize(activeWheel);
+            velocity *= FRICTION;
+        } else {
+            var target = Math.round(positions[activeWheel]);
+            var diff = target - positions[activeWheel];
+            if (diff > -0.01 and diff < 0.01) {
+                positions[activeWheel] = target;
+                normalize(activeWheel);
+                velocity = 0.0;
+                stopTimer();
+            } else {
+                positions[activeWheel] += diff * 0.35;
+            }
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function stopTimer() as Void {
+        if (timer != null) {
+            timer.stop();
+            timer = null;
+        }
+    }
+
+    function isOnButton(x as Number, y as Number) as Boolean {
+        var dx = x - width / 2;
+        var dy = y - buttonY;
+        return dx * dx + dy * dy <= 40 * 40;
+    }
+}
+
+class WheelPickerDelegate extends WatchUi.InputDelegate {
+    var wheelView as WheelPickerView;
+    var pickerView as TimePickerView;
+    var fieldIndex as Number;
+
+    function initialize(view as WheelPickerView, editor as TimePickerView, index as Number) {
+        InputDelegate.initialize();
+        wheelView = view;
+        pickerView = editor;
+        fieldIndex = index;
+    }
+
+    function accept() as Void {
+        var minutes = wheelView.getValue(1) * 60 + wheelView.getValue(0);
+        pickerView.setTime(fieldIndex, minutes);
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    function onTap(clickEvent as ClickEvent) as Boolean {
+        var coordinates = clickEvent.getCoordinates();
+        if (wheelView.isOnButton(coordinates[0], coordinates[1])) {
+            accept();
+            return true;
+        }
+        return false;
+    }
+
+    function onDrag(dragEvent as DragEvent) as Boolean {
+        var coordinates = dragEvent.getCoordinates();
+        var type = dragEvent.getType();
+        if (type == WatchUi.DRAG_TYPE_START) {
+            wheelView.beginDrag(coordinates[0], coordinates[1]);
+        } else if (type == WatchUi.DRAG_TYPE_CONTINUE) {
+            wheelView.dragTo(coordinates[1]);
+        } else {
+            wheelView.dragTo(coordinates[1]);
+            wheelView.endDrag();
+        }
+        return true;
+    }
+
+    function onKey(keyEvent as KeyEvent) as Boolean {
+        var key = keyEvent.getKey();
+        if (key == WatchUi.KEY_START or key == WatchUi.KEY_ENTER) {
+            accept();
+            return true;
+        } else if (key == WatchUi.KEY_ESC) {
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+            return true;
+        }
+        return false;
     }
 }
 

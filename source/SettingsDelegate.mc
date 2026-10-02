@@ -20,7 +20,8 @@ class HomeMenuDelegate extends WatchUi.Menu2InputDelegate {
             var settingsView = new SettingsView();
             WatchUi.switchToView(settingsView, new SettingsDelegate(settingsView), WatchUi.SLIDE_UP);
         } else if (item.getId() == :credits) {
-            WatchUi.switchToView(new CreditView(), new CreditDelegate(), WatchUi.SLIDE_UP);
+            var creditView = new CreditView();
+            WatchUi.switchToView(creditView, new CreditDelegate(creditView), WatchUi.SLIDE_UP);
         }
     }
 }
@@ -100,41 +101,87 @@ class DeletePeriodDelegate extends WatchUi.Menu2InputDelegate {
 }
 
 class CreditView extends WatchUi.View {
+    var qrCode as WatchUi.BitmapResource or Null;
+    var scrollOffset as Number;
+    var maxScroll as Number;
+
     function initialize() {
         View.initialize();
+        qrCode = null;
+        scrollOffset = 0;
+        maxScroll = 0;
     }
 
     function onLayout(dc as Dc) as Void {
-        setLayout(Rez.Layouts.MainLayout(dc));
+        qrCode = WatchUi.loadResource(Rez.Drawables.QrCode) as WatchUi.BitmapResource;
+        maxScroll = dc.getHeight() * 75 / 100;
+    }
+
+    function scrollBy(delta as Number) as Void {
+        scrollOffset += delta;
+        if (scrollOffset < 0) {
+            scrollOffset = 0;
+        } else if (scrollOffset > maxScroll) {
+            scrollOffset = maxScroll;
+        }
+        WatchUi.requestUpdate();
     }
 
     function onUpdate(dc as Dc) as Void {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.clear();
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-
         var width = dc.getWidth();
         var height = dc.getHeight();
-        dc.drawText(width / 2, height / 2 - 50, Graphics.FONT_SMALL,
-                    WatchUi.loadResource(Rez.Strings.CreditTitle) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(width / 2, height / 2, Graphics.FONT_XTINY,
-                    WatchUi.loadResource(Rez.Strings.CreditAuthor) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(width / 2, height / 2 + 30, Graphics.FONT_XTINY,
-                    WatchUi.loadResource(Rez.Strings.CreditDescription) as String,
-                    Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.clear();
+
+        // The QR page fills the screen; its quiet zone is white so it scans on a dark background.
+        if (qrCode != null) {
+            var size = qrCode.getWidth();
+            var x = (width - size) / 2;
+            var y = (height - size) / 2 - scrollOffset;
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
+            dc.fillRectangle(x, y, size, size);
+            dc.drawBitmap(x, y, qrCode);
+        }
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
+        dc.drawText(width / 2, height * 125 / 100 - scrollOffset, Graphics.FONT_SMALL,
+                    WatchUi.loadResource(Rez.Strings.CreditTitle) as String, justify);
+        dc.drawText(width / 2, height * 145 / 100 - scrollOffset, Graphics.FONT_XTINY,
+                    WatchUi.loadResource(Rez.Strings.CreditAuthor) as String, justify);
+        dc.drawText(width / 2, height * 160 / 100 - scrollOffset, Graphics.FONT_XTINY,
+                    WatchUi.loadResource(Rez.Strings.CreditDescription) as String, justify);
     }
 }
 
 class CreditDelegate extends WatchUi.InputDelegate {
-    function initialize() {
+    var creditView as CreditView;
+    var lastY as Number;
+
+    function initialize(view as CreditView) {
         InputDelegate.initialize();
+        creditView = view;
+        lastY = 0;
+    }
+
+    function onDrag(dragEvent as DragEvent) as Boolean {
+        var y = dragEvent.getCoordinates()[1];
+        if (dragEvent.getType() != WatchUi.DRAG_TYPE_START) {
+            creditView.scrollBy(lastY - y);
+        }
+        lastY = y;
+        return true;
     }
 
     function onKey(keyEvent as KeyEvent) as Boolean {
         var key = keyEvent.getKey();
-        if (key == WatchUi.KEY_ESC or key == WatchUi.KEY_MENU or key == WatchUi.KEY_START) {
+        if (key == WatchUi.KEY_DOWN) {
+            creditView.scrollBy(60);
+            return true;
+        } else if (key == WatchUi.KEY_UP) {
+            creditView.scrollBy(-60);
+            return true;
+        } else if (key == WatchUi.KEY_ESC or key == WatchUi.KEY_MENU or key == WatchUi.KEY_START) {
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
             return true;
         }
@@ -185,16 +232,8 @@ class TimePickerDelegate extends WatchUi.BehaviorDelegate {
         var initialHour = initialMinutes / 60;
         var initialMinute = initialMinutes % 60;
         var title = fieldIndex == 0 ? Rez.Strings.Start : Rez.Strings.End;
-        var picker = new WatchUi.Picker({
-            :title => new WatchUi.Text({:text => WatchUi.loadResource(title) as String}),
-            :pattern => [
-                new TimeUnitPickerFactory(24),
-                new WatchUi.Text({:text => ":", :color => Graphics.COLOR_WHITE, :font => Graphics.FONT_NUMBER_MEDIUM}),
-                new TimeUnitPickerFactory(60)
-            ],
-            :defaults => [initialHour, 0, initialMinute]
-        });
-        WatchUi.pushView(picker, new TimeValuePickerDelegate(pickerView, fieldIndex), WatchUi.SLIDE_UP);
+        var wheels = new WheelPickerView(WatchUi.loadResource(title) as String, initialHour, initialMinute);
+        WatchUi.pushView(wheels, new WheelPickerDelegate(wheels, pickerView, fieldIndex), WatchUi.SLIDE_UP);
     }
 
     function openDeleteConfirmation() as Void {
@@ -244,30 +283,5 @@ class TimePickerDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
         return false;
-    }
-}
-
-class TimeValuePickerDelegate extends WatchUi.PickerDelegate {
-    var pickerView as TimePickerView;
-    var fieldIndex as Number;
-
-    function initialize(view as TimePickerView, index as Number) {
-        PickerDelegate.initialize();
-        pickerView = view;
-        fieldIndex = index;
-    }
-
-    function onAccept(values as Array) as Boolean {
-        if (values[0] != null and values[2] != null) {
-            var minutes = (values[0] as Number) * 60 + (values[2] as Number);
-            pickerView.setTime(fieldIndex, minutes);
-        }
-        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-        return true;
-    }
-
-    function onCancel() as Boolean {
-        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-        return true;
     }
 }
