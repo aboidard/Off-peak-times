@@ -16,7 +16,6 @@
     <string id="CreditAuthor">Created by Arnaud Boidard</string>
     <string id="CreditDescription">Off-peak hours schedule</string>
     <string id="NoPeriods" scope="glance">No periods configured</string>
-    <string id="PeriodCountPrefix">Periods: </string>
     <string id="StatusActive" scope="glance">Off-peak hours active</string>
     <string id="RemainingTimePrefix">Time remaining: </string>
     <string id="NextOffPeakPrefix" scope="glance">Next OP hours in </string>
