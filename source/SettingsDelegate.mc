@@ -10,6 +10,27 @@ class HomeMenuView extends WatchUi.Menu2 {
     }
 }
 
+// replaceCurrent: swap the menu view; otherwise push so Back returns to the caller.
+function openSettings(replaceCurrent as Boolean) as Void {
+    var settingsView = new SettingsView();
+    var delegate = new SettingsDelegate(settingsView);
+    if (replaceCurrent) {
+        WatchUi.switchToView(settingsView, delegate, WatchUi.SLIDE_UP);
+    } else {
+        WatchUi.pushView(settingsView, delegate, WatchUi.SLIDE_UP);
+    }
+}
+
+function openCredits(replaceCurrent as Boolean) as Void {
+    var creditView = new CreditView();
+    var delegate = new CreditDelegate(creditView);
+    if (replaceCurrent) {
+        WatchUi.switchToView(creditView, delegate, WatchUi.SLIDE_UP);
+    } else {
+        WatchUi.pushView(creditView, delegate, WatchUi.SLIDE_UP);
+    }
+}
+
 class HomeMenuDelegate extends WatchUi.Menu2InputDelegate {
     function initialize() {
         Menu2InputDelegate.initialize();
@@ -17,11 +38,9 @@ class HomeMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         if (item.getId() == :settings) {
-            var settingsView = new SettingsView();
-            WatchUi.switchToView(settingsView, new SettingsDelegate(settingsView), WatchUi.SLIDE_UP);
+            openSettings(true);
         } else if (item.getId() == :credits) {
-            var creditView = new CreditView();
-            WatchUi.switchToView(creditView, new CreditDelegate(creditView), WatchUi.SLIDE_UP);
+            openCredits(true);
         }
     }
 }

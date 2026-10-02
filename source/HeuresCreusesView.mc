@@ -3,17 +3,103 @@ import Toybox.System;
 import Toybox.Time;
 import Toybox.WatchUi;
 import Toybox.Lang;
+import Toybox.Timer;
 
 class HeuresCreusesView extends WatchUi.View {
+    const GRAB_ZONE = 70;
+    const TICK_MS = 33;
+
     var settings as Settings;
+    var screenWidth as Number;
+    var screenHeight as Number;
+    var drawerWidth as Number;
+    var drawerOffset as Number;
+    var drawerTarget as Number;
+    var drawerTimer as Timer.Timer or Null;
 
     function initialize() {
         View.initialize();
         settings = new Settings();
+        screenWidth = 0;
+        screenHeight = 0;
+        drawerWidth = 0;
+        drawerOffset = 0;
+        drawerTarget = 0;
+        drawerTimer = null;
     }
 
     function onLayout(dc as Dc) as Void {
         setLayout(Rez.Layouts.MainLayout(dc));
+        screenWidth = dc.getWidth();
+        screenHeight = dc.getHeight();
+        drawerWidth = screenWidth * 60 / 100;
+    }
+
+    function setDrawerOffset(offset as Number) as Void {
+        drawerOffset = offset < 0 ? 0 : (offset > drawerWidth ? drawerWidth : offset);
+        WatchUi.requestUpdate();
+    }
+
+    function isDrawerOpen() as Boolean {
+        return drawerOffset > 0;
+    }
+
+    function isInGrabZone(x as Number) as Boolean {
+        return x >= screenWidth - GRAB_ZONE;
+    }
+
+    function settleDrawer(open as Boolean) as Void {
+        drawerTarget = open ? drawerWidth : 0;
+        stopDrawerTimer();
+        drawerTimer = new Timer.Timer();
+        drawerTimer.start(method(:onDrawerTick), TICK_MS, true);
+    }
+
+    function onDrawerTick() as Void {
+        var diff = drawerTarget - drawerOffset;
+        var step = diff * 40 / 100;
+        if (step == 0) {
+            step = diff > 0 ? 1 : -1;
+        }
+        if (diff == 0 or (diff > 0 and step >= diff) or (diff < 0 and step <= diff)) {
+            drawerOffset = drawerTarget;
+            stopDrawerTimer();
+        } else {
+            drawerOffset += step;
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function stopDrawerTimer() as Void {
+        if (drawerTimer != null) {
+            drawerTimer.stop();
+            drawerTimer = null;
+        }
+    }
+
+    function drawDrawer(dc as Dc) as Void {
+        var panelX = screenWidth - drawerOffset;
+
+        if (drawerOffset > 0) {
+            dc.setColor(0x1C1C1C, 0x1C1C1C);
+            dc.fillRectangle(panelX, 0, drawerOffset, screenHeight);
+        }
+
+        // Handle follows the panel edge.
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
+        dc.fillRoundedRectangle(panelX - 12, screenHeight / 2 - 30, 6, 60, 3);
+
+        if (drawerOffset > drawerWidth / 2) {
+            var centerX = panelX + drawerOffset / 2;
+            var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(centerX, screenHeight * 38 / 100, Graphics.FONT_SMALL,
+                        WatchUi.loadResource(Rez.Strings.Settings) as String, justify);
+            dc.drawText(centerX, screenHeight * 62 / 100, Graphics.FONT_SMALL,
+                        WatchUi.loadResource(Rez.Strings.Credits) as String, justify);
+            dc.setColor(0x606060, 0x606060);
+            dc.drawLine(panelX + 20, screenHeight / 2, screenWidth, screenHeight / 2);
+        }
     }
 
     function onShow() as Void {
@@ -98,24 +184,85 @@ class HeuresCreusesView extends WatchUi.View {
         }
 
         dc.drawText(width / 2, height / 2 + 20, Graphics.FONT_MEDIUM, remainingStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        drawDrawer(dc);
     }
 
     function onHide() {
+        stopDrawerTimer();
     }
 }
 
 class HeuresCreusesDelegate extends WatchUi.InputDelegate {
-    function initialize() {
+    var mainView as HeuresCreusesView;
+    var dragging as Boolean;
+    var dragStartX as Number;
+    var dragStartOffset as Number;
+
+    function initialize(view as HeuresCreusesView) {
         InputDelegate.initialize();
+        mainView = view;
+        dragging = false;
+        dragStartX = 0;
+        dragStartOffset = 0;
+    }
+
+    function onDrag(dragEvent as DragEvent) as Boolean {
+        var x = dragEvent.getCoordinates()[0];
+        var type = dragEvent.getType();
+        if (type == WatchUi.DRAG_TYPE_START) {
+            dragging = mainView.isDrawerOpen() or mainView.isInGrabZone(x);
+            if (dragging) {
+                mainView.stopDrawerTimer();
+                dragStartX = x;
+                dragStartOffset = mainView.drawerOffset;
+            }
+            return dragging;
+        }
+        if (!dragging) {
+            return false;
+        }
+        mainView.setDrawerOffset(dragStartOffset + dragStartX - x);
+        if (type == WatchUi.DRAG_TYPE_STOP) {
+            dragging = false;
+            mainView.settleDrawer(mainView.drawerOffset > mainView.drawerWidth * 40 / 100);
+        }
+        return true;
+    }
+
+    function onTap(clickEvent as ClickEvent) as Boolean {
+        var coordinates = clickEvent.getCoordinates();
+        var x = coordinates[0];
+        var y = coordinates[1];
+        if (mainView.isDrawerOpen()) {
+            if (x >= mainView.screenWidth - mainView.drawerOffset) {
+                mainView.stopDrawerTimer();
+                mainView.setDrawerOffset(0);
+                if (y < mainView.screenHeight / 2) {
+                    openSettings(false);
+                } else {
+                    openCredits(false);
+                }
+            } else {
+                mainView.settleDrawer(false);
+            }
+            return true;
+        }
+        if (mainView.isInGrabZone(x)) {
+            mainView.settleDrawer(true);
+            return true;
+        }
+        return false;
     }
 
     function onKey(keyEvent as KeyEvent) as Boolean {
         var key = keyEvent.getKey();
-        //log key press
-        System.println("Key pressed: " + key.toString());
 
         if (key == WatchUi.KEY_ENTER) {
             WatchUi.pushView(new HomeMenuView(), new HomeMenuDelegate(), WatchUi.SLIDE_UP);
+            return true;
+        } else if (key == WatchUi.KEY_ESC and mainView.isDrawerOpen()) {
+            mainView.settleDrawer(false);
             return true;
         }
 
