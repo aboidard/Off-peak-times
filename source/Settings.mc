@@ -1,5 +1,6 @@
 import Toybox.Application;
 import Toybox.Lang;
+import Toybox.WatchUi;
 
 (:glance)
 class Settings {
@@ -9,6 +10,11 @@ class Settings {
     static const KEY_PERIOD_2_START = "p2_start";
     static const KEY_PERIOD_2_END = "p2_end";
     static const MAX_PERIODS = 8;
+
+    static const KEY_PRECISION = "precision";
+    static const PRECISION_HALF_HOUR = 0;
+    static const PRECISION_HOUR = 1;
+    static const PRECISION_MINUTE = 2;
     
     // Valeurs par défaut: 1:10-6:10 et 14:10-17:10
     static const DEFAULT_P1_START = 70;
@@ -160,13 +166,40 @@ class Settings {
         return shortestDelay;
     }
 
-    function roundUpToHalfHour(minutes as Number) as Number {
-        var half = 30;
-        var remainder = minutes % half;
+    function getPrecision() as Number {
+        var value = Application.Storage.getValue(KEY_PRECISION);
+        if (value instanceof Number and
+            (value == PRECISION_HALF_HOUR or value == PRECISION_HOUR or value == PRECISION_MINUTE)) {
+            return value as Number;
+        }
+        return PRECISION_HALF_HOUR;
+    }
+
+    function setPrecision(precision as Number) as Void {
+        Application.Storage.setValue(KEY_PRECISION, precision);
+    }
+
+    // Arrondi au pas supérieur selon la précision choisie (30, 60 ou 1 minute).
+    function roundRemaining(minutes as Number) as Number {
+        var precision = getPrecision();
+        var step = precision == PRECISION_HOUR ? 60 : (precision == PRECISION_MINUTE ? 1 : 30);
+        var remainder = minutes % step;
         if (remainder == 0) {
             return minutes;
         }
-        return minutes + (half - remainder);
+        return minutes + (step - remainder);
+    }
+
+    // Exemples : 49min, 1h, 1h05, 2h53.
+    function formatRemaining(minutes as Number) as String {
+        var rounded = roundRemaining(minutes);
+        var h = rounded / 60;
+        var m = rounded % 60;
+        if (h == 0) {
+            return m.toString() + (WatchUi.loadResource(Rez.Strings.MinuteSuffix) as String);
+        }
+        var hourSuffix = WatchUi.loadResource(Rez.Strings.HourSuffix) as String;
+        return h.toString() + hourSuffix + ((m == 0) ? "" : (m < 10 ? "0" : "") + m.toString());
     }
 
     function minutesToTimeString(minutes as Number) as String {

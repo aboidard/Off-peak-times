@@ -58,7 +58,11 @@ class SettingsDelegate extends WatchUi.Menu2InputDelegate {
         var periods = settingsView.settings.getPeriods();
         var periodIndex = -1;
 
-        if (identifier == :add) {
+        if (identifier == :precision) {
+            var precisionView = new PrecisionView(settingsView.settings.getPrecision());
+            WatchUi.pushView(precisionView, new PrecisionDelegate(settingsView.settings), WatchUi.SLIDE_UP);
+            return;
+        } else if (identifier == :add) {
             periodIndex = periods.size();
         } else if (identifier instanceof Number) {
             periodIndex = identifier as Number;
