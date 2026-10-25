@@ -12,12 +12,12 @@ class HomeMenuView extends WatchUi.Menu2 {
 
 // replaceCurrent: swap the menu view; otherwise push so Back returns to the caller.
 function openSettings(replaceCurrent as Boolean) as Void {
-    var settingsView = new SettingsView();
-    var delegate = new SettingsDelegate(settingsView);
+    var menuView = new SettingsMenuView();
+    var delegate = new SettingsMenuDelegate(menuView);
     if (replaceCurrent) {
-        WatchUi.switchToView(settingsView, delegate, WatchUi.SLIDE_UP);
+        WatchUi.switchToView(menuView, delegate, WatchUi.SLIDE_UP);
     } else {
-        WatchUi.pushView(settingsView, delegate, WatchUi.SLIDE_UP);
+        WatchUi.pushView(menuView, delegate, WatchUi.SLIDE_UP);
     }
 }
 
@@ -45,24 +45,20 @@ class HomeMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 }
 
-class SettingsDelegate extends WatchUi.Menu2InputDelegate {
-    var settingsView as SettingsView;
+class PeriodsDelegate extends WatchUi.Menu2InputDelegate {
+    var periodsView as PeriodsView;
 
-    function initialize(view as SettingsView) {
+    function initialize(view as PeriodsView) {
         Menu2InputDelegate.initialize();
-        settingsView = view;
+        periodsView = view;
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var identifier = item.getId();
-        var periods = settingsView.settings.getPeriods();
+        var periods = periodsView.settings.getPeriods();
         var periodIndex = -1;
 
-        if (identifier == :precision) {
-            var precisionView = new PrecisionView(settingsView.settings.getPrecision());
-            WatchUi.pushView(precisionView, new PrecisionDelegate(settingsView.settings), WatchUi.SLIDE_UP);
-            return;
-        } else if (identifier == :add) {
+        if (identifier == :add) {
             periodIndex = periods.size();
         } else if (identifier instanceof Number) {
             periodIndex = identifier as Number;
@@ -83,7 +79,7 @@ class SettingsDelegate extends WatchUi.Menu2InputDelegate {
 
         var isNew = periodIndex == periods.size();
         var editor = new TimePickerView(startMinute, endMinute, isNew);
-        var delegate = new TimePickerDelegate(editor, settingsView, periodIndex);
+        var delegate = new TimePickerDelegate(editor, periodsView, periodIndex);
         WatchUi.switchToView(editor, delegate, WatchUi.SLIDE_UP);
     }
 }
@@ -98,14 +94,14 @@ class DeletePeriodView extends WatchUi.Menu2 {
 
 class DeletePeriodDelegate extends WatchUi.Menu2InputDelegate {
     var settings as Settings;
-    var settingsView as SettingsView;
+    var periodsView as PeriodsView;
     var editor as TimePickerView;
     var periodIndex as Number;
 
-    function initialize(model as Settings, listView as SettingsView, editView as TimePickerView, index as Number) {
+    function initialize(model as Settings, listView as PeriodsView, editView as TimePickerView, index as Number) {
         Menu2InputDelegate.initialize();
         settings = model;
-        settingsView = listView;
+        periodsView = listView;
         editor = editView;
         periodIndex = index;
     }
@@ -113,11 +109,11 @@ class DeletePeriodDelegate extends WatchUi.Menu2InputDelegate {
     function onSelect(item as WatchUi.MenuItem) as Void {
         if (item.getId() == :delete) {
             settings.removePeriod(periodIndex);
-            settingsView.refresh();
-            WatchUi.switchToView(settingsView, new SettingsDelegate(settingsView), WatchUi.SLIDE_IMMEDIATE);
+            periodsView.refresh();
+            WatchUi.switchToView(periodsView, new PeriodsDelegate(periodsView), WatchUi.SLIDE_IMMEDIATE);
         } else {
             WatchUi.switchToView(editor,
-                new TimePickerDelegate(editor, settingsView, periodIndex),
+                new TimePickerDelegate(editor, periodsView, periodIndex),
                 WatchUi.SLIDE_IMMEDIATE);
         }
     }
@@ -222,14 +218,14 @@ class CreditDelegate extends WatchUi.InputDelegate {
 
 class TimePickerDelegate extends WatchUi.BehaviorDelegate {
     var pickerView as TimePickerView;
-    var settingsView as SettingsView;
+    var periodsView as PeriodsView;
     var settings as Settings;
     var periodIndex as Number;
 
-    function initialize(view as TimePickerView, listView as SettingsView, index as Number) {
+    function initialize(view as TimePickerView, listView as PeriodsView, index as Number) {
         BehaviorDelegate.initialize();
         pickerView = view;
-        settingsView = listView;
+        periodsView = listView;
         settings = listView.settings;
         periodIndex = index;
     }
@@ -262,14 +258,14 @@ class TimePickerDelegate extends WatchUi.BehaviorDelegate {
     function openDeleteConfirmation() as Void {
         var confirmation = new DeletePeriodView();
         WatchUi.switchToView(confirmation,
-            new DeletePeriodDelegate(settings, settingsView, pickerView, periodIndex),
+            new DeletePeriodDelegate(settings, periodsView, pickerView, periodIndex),
             WatchUi.SLIDE_UP);
     }
 
     function savePeriod() as Void {
         settings.setPeriod(periodIndex, pickerView.startMinutes, pickerView.endMinutes);
-        settingsView.refresh();
-        WatchUi.switchToView(settingsView, new SettingsDelegate(settingsView), WatchUi.SLIDE_IMMEDIATE);
+        periodsView.refresh();
+        WatchUi.switchToView(periodsView, new PeriodsDelegate(periodsView), WatchUi.SLIDE_IMMEDIATE);
     }
 
     function handleTap(x as Number, y as Number) as Boolean {
@@ -302,7 +298,7 @@ class TimePickerDelegate extends WatchUi.BehaviorDelegate {
             openDeleteConfirmation();
             return true;
         } else if (key == WatchUi.KEY_ESC) {
-            WatchUi.switchToView(settingsView, new SettingsDelegate(settingsView), WatchUi.SLIDE_IMMEDIATE);
+            WatchUi.switchToView(periodsView, new PeriodsDelegate(periodsView), WatchUi.SLIDE_IMMEDIATE);
             return true;
         }
         return false;

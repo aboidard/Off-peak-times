@@ -21,6 +21,9 @@
     <string id="NextOffPeakPrefix" scope="glance">Prochaine période d'heures creuses dans </string>
     <string id="HourSuffix" scope="glance"> h </string>
     <string id="MinuteSuffix" scope="glance"> min</string>
+    <string id="PeriodsCountNone">Aucune</string>
+    <string id="PeriodsCountOne">1 période</string>
+    <string id="PeriodsCountMany">$1$ périodes</string>
     <string id="Precision">Précision</string>
     <string id="PrecisionHalfHour">À la demi-heure</string>
     <string id="PrecisionHour">À l'heure</string>
