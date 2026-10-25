@@ -106,70 +106,15 @@ class HeuresCreusesView extends WatchUi.View {
     function onShow() as Void {
     }
 
-    function isHeuresCreuses(minutes) {
-        var periods = settings.getPeriods();
-        for (var index = 0; index < periods.size(); index += 1) {
-            var startMinute = periods[index][0];
-            var endMinute = periods[index][1];
-
-            if (startMinute == endMinute or
-                (startMinute < endMinute and minutes >= startMinute and minutes < endMinute) or
-                (startMinute > endMinute and (minutes >= startMinute or minutes < endMinute))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function minutesUntilNextHeuresCreuses(nowMinutes) {
-        var periods = settings.getPeriods();
-        if (periods.size() == 0 or isHeuresCreuses(nowMinutes)) {
-            return 0;
-        }
-
-        var shortestDelay = 24 * 60;
-        for (var index = 0; index < periods.size(); index += 1) {
-            var delay = periods[index][0] - nowMinutes;
-            if (delay < 0) {
-                delay += 24 * 60;
-            }
-            if (delay < shortestDelay) {
-                shortestDelay = delay;
-            }
-        }
-        return shortestDelay;
-    }
-
-    function roundUpToHalfHour(minutes) {
-        var half = 30;
-        var remainder = minutes % half;
-        if (remainder == 0) {
-            return minutes;
-        }
-        return minutes + (half - remainder);
-    }
-
-    function formatMinutes(minutes as Number) as String {
-        var hour = minutes / 60;
-        var minute = minutes % 60;
-        return (hour < 10 ? "0" : "") + hour.toString() + ":" + (minute < 10 ? "0" : "") + minute.toString();
-    }
-
     // Period in progress, or the next one to start; null when none is configured.
-    function relevantPeriod(nowMinutes as Number) as Array<Number> or Null {
-        var periods = settings.getPeriods();
+    function relevantPeriod(periods as Array<Array<Number>>, nowMinutes as Number) as Array<Number> or Null {
         var best = null;
         var bestDelay = 24 * 60 + 1;
         for (var index = 0; index < periods.size(); index += 1) {
-            var startMinute = periods[index][0];
-            var endMinute = periods[index][1];
-            var active = startMinute == endMinute or
-                (startMinute < endMinute and nowMinutes >= startMinute and nowMinutes < endMinute) or
-                (startMinute > endMinute and (nowMinutes >= startMinute or nowMinutes < endMinute));
-            if (active) {
+            if (settings.isPeriodActive(periods[index], nowMinutes)) {
                 return periods[index];
             }
-            var delay = (startMinute - nowMinutes + 24 * 60) % (24 * 60);
+            var delay = (periods[index][0] - nowMinutes + 24 * 60) % (24 * 60);
             if (delay < bestDelay) {
                 bestDelay = delay;
                 best = periods[index];
@@ -190,11 +135,11 @@ class HeuresCreusesView extends WatchUi.View {
 
         var info = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
         var nowMinutes = info.hour * 60 + info.min;
-        var inHC = isHeuresCreuses(nowMinutes);
+        var inHC = settings.isHeuresCreuses(periods, nowMinutes);
 
-        var period = relevantPeriod(nowMinutes);
+        var period = relevantPeriod(periods, nowMinutes);
         if (period != null) {
-            var range = formatMinutes(period[0]) + " - " + formatMinutes(period[1]);
+            var range = settings.minutesToTimeString(period[0]) + " - " + settings.minutesToTimeString(period[1]);
             dc.drawText(width / 2, height / 2 - 60, Graphics.FONT_XTINY, range, Graphics.TEXT_JUSTIFY_CENTER);
         }
 
@@ -204,8 +149,8 @@ class HeuresCreusesView extends WatchUi.View {
         } else if (inHC) {
             remainingStr = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         } else {
-            var minutesLeft = minutesUntilNextHeuresCreuses(nowMinutes);
-            var minutesRounded = roundUpToHalfHour(minutesLeft);
+            var minutesLeft = settings.minutesUntilNextHeuresCreuses(periods, nowMinutes);
+            var minutesRounded = settings.roundUpToHalfHour(minutesLeft);
 
             var h = minutesRounded / 60;
             var m = minutesRounded % 60;

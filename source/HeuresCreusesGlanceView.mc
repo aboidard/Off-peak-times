@@ -14,48 +14,6 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
         settings = new Settings();
     }
     
-    function isHeuresCreuses(minutes as Number) as Boolean {
-        var periods = settings.getPeriods();
-        for (var index = 0; index < periods.size(); index += 1) {
-            var startMinute = periods[index][0];
-            var endMinute = periods[index][1];
-            if (startMinute == endMinute or
-                (startMinute < endMinute and minutes >= startMinute and minutes < endMinute) or
-                (startMinute > endMinute and (minutes >= startMinute or minutes < endMinute))) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    function minutesUntilNextHeuresCreuses(nowMinutes as Number) as Number {
-        var periods = settings.getPeriods();
-        if (periods.size() == 0 or isHeuresCreuses(nowMinutes)) {
-            return 0;
-        }
-
-        var shortestDelay = 24 * 60;
-        for (var index = 0; index < periods.size(); index += 1) {
-            var delay = periods[index][0] - nowMinutes;
-            if (delay < 0) {
-                delay += 24 * 60;
-            }
-            if (delay < shortestDelay) {
-                shortestDelay = delay;
-            }
-        }
-        return shortestDelay;
-    }
-    
-    function roundUpToHalfHour(minutes as Number) as Number {
-        var half = 30;
-        var remainder = minutes % half;
-        if (remainder == 0) {
-            return minutes;
-        }
-        return minutes + (half - remainder);
-    }
-
     function onUpdate(dc as Dc) as Void {
         var width  = dc.getWidth();
         var height = dc.getHeight();
@@ -71,11 +29,11 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
         var periods = settings.getPeriods();
         if (periods.size() == 0) {
             text = WatchUi.loadResource(Rez.Strings.NoPeriods) as String;
-        } else if (isHeuresCreuses(nowMinutes)) {
+        } else if (settings.isHeuresCreuses(periods, nowMinutes)) {
             text = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         } else {
-            var minutesLeft = minutesUntilNextHeuresCreuses(nowMinutes);
-            var minutesRounded = roundUpToHalfHour(minutesLeft);
+            var minutesLeft = settings.minutesUntilNextHeuresCreuses(periods, nowMinutes);
+            var minutesRounded = settings.roundUpToHalfHour(minutesLeft);
             var h = minutesRounded / 60;
             var m = minutesRounded % 60;
             var nextPrefix = WatchUi.loadResource(Rez.Strings.NextOffPeakPrefix) as String;

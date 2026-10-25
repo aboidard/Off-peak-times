@@ -124,6 +124,51 @@ class Settings {
         setPeriod(1, startMin, endMin);
     }
 
+    // start > end traverse minuit; start == end couvre toute la journée.
+    function isPeriodActive(period as Array<Number>, minutes as Number) as Boolean {
+        var startMinute = period[0];
+        var endMinute = period[1];
+        return startMinute == endMinute or
+            (startMinute < endMinute and minutes >= startMinute and minutes < endMinute) or
+            (startMinute > endMinute and (minutes >= startMinute or minutes < endMinute));
+    }
+
+    function isHeuresCreuses(periods as Array<Array<Number>>, minutes as Number) as Boolean {
+        for (var index = 0; index < periods.size(); index += 1) {
+            if (isPeriodActive(periods[index], minutes)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function minutesUntilNextHeuresCreuses(periods as Array<Array<Number>>, nowMinutes as Number) as Number {
+        if (periods.size() == 0 or isHeuresCreuses(periods, nowMinutes)) {
+            return 0;
+        }
+
+        var shortestDelay = 24 * 60;
+        for (var index = 0; index < periods.size(); index += 1) {
+            var delay = periods[index][0] - nowMinutes;
+            if (delay < 0) {
+                delay += 24 * 60;
+            }
+            if (delay < shortestDelay) {
+                shortestDelay = delay;
+            }
+        }
+        return shortestDelay;
+    }
+
+    function roundUpToHalfHour(minutes as Number) as Number {
+        var half = 30;
+        var remainder = minutes % half;
+        if (remainder == 0) {
+            return minutes;
+        }
+        return minutes + (half - remainder);
+    }
+
     function minutesToTimeString(minutes as Number) as String {
         var h = minutes / 60;
         var m = minutes % 60;
