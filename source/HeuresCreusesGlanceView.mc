@@ -33,13 +33,8 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
             text = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         } else {
             var minutesLeft = settings.minutesUntilNextHeuresCreuses(periods, nowMinutes);
-            var minutesRounded = settings.roundUpToHalfHour(minutesLeft);
-            var h = minutesRounded / 60;
-            var m = minutesRounded % 60;
             var nextPrefix = WatchUi.loadResource(Rez.Strings.NextOffPeakPrefix) as String;
-            var hourSuffix = WatchUi.loadResource(Rez.Strings.HourSuffix) as String;
-            text = nextPrefix + h.toString() + hourSuffix +
-                   ((m == 0) ? "" : (m < 10 ? "0" : "") + m.toString());
+            text = nextPrefix + settings.formatRemaining(minutesLeft);
         }
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);

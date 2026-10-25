@@ -150,15 +150,8 @@ class HeuresCreusesView extends WatchUi.View {
             remainingStr = WatchUi.loadResource(Rez.Strings.StatusActive) as String;
         } else {
             var minutesLeft = settings.minutesUntilNextHeuresCreuses(periods, nowMinutes);
-            var minutesRounded = settings.roundUpToHalfHour(minutesLeft);
-
-            var h = minutesRounded / 60;
-            var m = minutesRounded % 60;
-
             var timePrefix = WatchUi.loadResource(Rez.Strings.RemainingTimePrefix) as String;
-            var hourSuffix = WatchUi.loadResource(Rez.Strings.HourSuffix) as String;
-            remainingStr = timePrefix + h.toString() + hourSuffix +
-                           ((m == 0) ? "" : (m < 10 ? "0" : "") + m.toString());
+            remainingStr = timePrefix + settings.formatRemaining(minutesLeft);
         }
 
         dc.drawText(width / 2, height / 2 + 20, Graphics.FONT_MEDIUM, remainingStr, Graphics.TEXT_JUSTIFY_CENTER);
