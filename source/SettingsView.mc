@@ -1,7 +1,7 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Menu racine des paramètres : chaque entrée ouvre un sous-menu, avec l'état actuel en sous-titre.
+// Root settings menu: each entry opens a sub-menu and shows the current state as its sub-label.
 class SettingsMenuView extends WatchUi.Menu2 {
     var settings as Settings;
     var periodsItem as WatchUi.MenuItem;
@@ -106,7 +106,7 @@ function precisionLabel(precision as Number) as ResourceId {
 
 class PrecisionView extends WatchUi.Menu2 {
     function initialize(current as Number) {
-        // L'ordre des éléments suit les valeurs PRECISION_* pour que :focus pointe sur le choix actuel.
+        // Item order follows the PRECISION_* values so that :focus points at the current choice.
         Menu2.initialize({:title => Rez.Strings.Precision, :focus => current});
         addItem(new WatchUi.MenuItem(Rez.Strings.PrecisionHalfHour, null, Settings.PRECISION_HALF_HOUR, null));
         addItem(new WatchUi.MenuItem(Rez.Strings.PrecisionHour, null, Settings.PRECISION_HOUR, null));

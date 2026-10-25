@@ -16,7 +16,7 @@ class Settings {
     static const PRECISION_HOUR = 1;
     static const PRECISION_MINUTE = 2;
     
-    // Valeurs par défaut: 1:10-6:10 et 14:10-17:10
+    // Defaults: 1:10-6:10 and 14:10-17:10
     static const DEFAULT_P1_START = 70;
     static const DEFAULT_P1_END = 370;
     static const DEFAULT_P2_START = 850;
@@ -130,7 +130,7 @@ class Settings {
         setPeriod(1, startMin, endMin);
     }
 
-    // start > end traverse minuit; start == end couvre toute la journée.
+    // start > end wraps past midnight; start == end covers the whole day.
     function isPeriodActive(period as Array<Number>, minutes as Number) as Boolean {
         var startMinute = period[0];
         var endMinute = period[1];
@@ -179,7 +179,7 @@ class Settings {
         Application.Storage.setValue(KEY_PRECISION, precision);
     }
 
-    // Arrondi au pas supérieur selon la précision choisie (30, 60 ou 1 minute).
+    // Round up to the next step for the chosen precision (30, 60 or 1 minute).
     function roundRemaining(minutes as Number) as Number {
         var precision = getPrecision();
         var step = precision == PRECISION_HOUR ? 60 : (precision == PRECISION_MINUTE ? 1 : 30);
@@ -190,7 +190,7 @@ class Settings {
         return minutes + (step - remainder);
     }
 
-    // Exemples : 49min, 1h, 1h05, 2h53.
+    // Examples: 49min, 1h, 1h05, 2h53.
     function formatRemaining(minutes as Number) as String {
         var rounded = roundRemaining(minutes);
         var h = rounded / 60;

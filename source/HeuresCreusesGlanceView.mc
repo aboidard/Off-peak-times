@@ -24,7 +24,7 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
         var info = Gregorian.info(Time.now(), Time.FORMAT_MEDIUM);
         var nowMinutes = info.hour * 60 + info.min;
 
-        // --- Texte statut ---
+        // --- Status text ---
         var text;
         var periods = settings.getPeriods();
         if (periods.size() == 0) {
@@ -46,27 +46,27 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
-        // --- Barre temporelle ---
-        // La barre représente 24h, centrée sur "now"
-        // nowMinutes correspond au centre de la barre (width/2)
+        // --- Timeline bar ---
+        // The bar spans 24h, centered on "now"
+        // nowMinutes maps to the center of the bar (width/2)
         var barY      = height / 2 + 10;
         var barHeight = 3;
         var hcHeight  = 7;
 
-        // Conversion minutes -> pixels
-        // La barre affiche une fenêtre de 24h (1440 min) sur toute la largeur
+        // Minutes -> pixels conversion
+        // The bar shows a 24h window (1440 min) across the full width
         var totalMinutes = 1440;
         var pixelsPerMinute = width.toFloat() / totalMinutes.toFloat();
 
-        // Origine en pixels : le pixel 0 correspond à (nowMinutes - 720) minutes
+        // Pixel origin: pixel 0 maps to (nowMinutes - 720) minutes
         var windowStart = nowMinutes - 720; // 720 = 1440/2
 
-        // Dessine la ligne de base (gris)
+        // Draw the baseline (gray)
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(0, barY - barHeight / 2, width, barHeight);
 
-        // Plages HC configurées
-        // On les dessine aussi pour le jour suivant (+1440) pour couvrir le bord droit
+        // Configured off-peak periods
+        // Also draw them for the next day (+1440) to cover the right edge
         var hcPeriods = new Array<Array<Number>>[0];
         for (var periodIndex = 0; periodIndex < periods.size(); periodIndex += 1) {
             var startMinute = periods[periodIndex][0];
@@ -91,7 +91,7 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
             var xStart = ((startMin - windowStart) * pixelsPerMinute).toNumber();
             var xEnd   = ((endMin   - windowStart) * pixelsPerMinute).toNumber();
 
-            // Clamp à la largeur de l'écran
+            // Clamp to the screen width
             if (xStart < 0)     { xStart = 0; }
             if (xEnd   > width) { xEnd   = width; }
 
@@ -105,7 +105,7 @@ class HeuresCreusesGlanceView extends WatchUi.GlanceView {
             }
         }
 
-        // Curseur "now" : trait vertical blanc au centre
+        // "now" cursor: white vertical line at the center
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(width / 2 - 1, barY - 10, 2, 20);
     }

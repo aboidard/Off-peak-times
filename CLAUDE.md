@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Garmin Connect IQ **widget** written in Monkey C ("Heures Creuses" = French electricity off-peak hours). It shows whether the current time is in a user-configured off-peak period, the time until the next one, and a 24h timeline bar centered on "now". Targets: every installed touchscreen watch at API 6.0 (Venu 4, Venu X1, vívoactive 6, fēnix 8/8 Pro/8 Solar/E, Enduro 3, Forerunner 70/170/570/970, D2 Mach 2 Pro). Edge bike computers are left out on purpose. Screens range from 260x260 MIP up to 454x454 AMOLED, including the non-round Venu X1. `minApiLevel="6.0.0"`, languages `eng` + `fre`. `manifest.xml` and `monkey.jungle` are authoritative — re-read them rather than trusting these values. `manifest.xml` is generated; edit it through the VS Code Monkey C extension commands.
 
-`.github/agents/garmin-connectiq-widget.agent.md` holds detailed project conventions (written in French); its key points are summarized below.
+`.github/agents/garmin-connectiq-widget.agent.md` holds detailed project conventions; its key points are summarized below.
 
 ## Build and run (Windows / PowerShell)
 
@@ -46,4 +46,4 @@ java.exe -classpath "$sdk\bin\monkeybrains.jar" com.garmin.monkeybrains.monkeydo
 - Prefer native `WatchUi` components (`Menu2`, `MenuItem`, system pickers/delegates) over hand-drawn controls; use `Dc` drawing only for genuinely custom content (main view, glance). Verify API names and availability against the SDK for the target API level rather than guessing.
 - All user-visible text goes in `resources/strings/strings.xml` **and** `resources-fre/strings/strings.xml` (keep the two in sync).
 - Don't hardcode screen dimensions; derive layout from `dc.getWidth()/getHeight()`.
-- Code comments and identifiers mix French and English; match the surrounding file.
+- Write all code comments in English. Identifiers mix French and English (e.g. `HeuresCreuses*`); keep existing names and match the surrounding file for new ones.
