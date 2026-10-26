@@ -18,8 +18,7 @@ class HeuresCreusesApp extends Application.AppBase {
 
     // Return the initial view of your application here
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        var view = new HeuresCreusesView();
-        return [ view, new HeuresCreusesDelegate(view) ];
+        return [ new HeuresCreusesView(), new HeuresCreusesDelegate() ];
     }
     
     (:glance)
