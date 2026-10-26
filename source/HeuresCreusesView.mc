@@ -46,6 +46,10 @@ class HeuresCreusesView extends WatchUi.View {
         }
     }
 
+    function onLayout(dc as Dc) as Void {
+        setLayout(Rez.Layouts.MainLayout(dc));
+    }
+
     function onShow() as Void {
     }
 
@@ -64,6 +68,17 @@ class HeuresCreusesView extends WatchUi.View {
             }
         }
         return best;
+    }
+
+    // Largest font that keeps the text within maxWidth; the round screen narrows away from the center.
+    function fittingFont(dc as Dc, text as String, maxWidth as Number) as Graphics.FontDefinition {
+        var fonts = [Graphics.FONT_SMALL, Graphics.FONT_TINY];
+        for (var index = 0; index < fonts.size(); index += 1) {
+            if (dc.getTextWidthInPixels(text, fonts[index]) <= maxWidth) {
+                return fonts[index];
+            }
+        }
+        return Graphics.FONT_XTINY;
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -97,7 +112,11 @@ class HeuresCreusesView extends WatchUi.View {
             remainingStr = timePrefix + settings.formatRemaining(minutesLeft);
         }
 
-        dc.drawText(width / 2, height / 2 + 20, Graphics.FONT_MEDIUM, remainingStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(width / 2, height / 2 + 20, fittingFont(dc, remainingStr, width * 85 / 100),
+                    remainingStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Action menu hint from MainLayout, drawn without clearing the screen.
+        drawLayout(dc);
     }
 }
 
@@ -145,10 +164,20 @@ class HeuresCreusesDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Product action menu input, handled by the system: a button, KEY_ENTER or the edge
-    // touch area, depending on the watch. Don't add a swipe handler, it would open it twice.
+    // Action menu input triggered by the system (Venu 4 button or edge touch area).
+    // Don't add a swipe handler, it would open the menu twice.
     function onActionMenu() as Boolean {
         return showMenu();
+    }
+
+    // Products where the system does not trigger onActionMenu (fenix: KEY_ENTER)
+    // name the action menu button in their personality.
+    function onKey(keyEvent as KeyEvent) as Boolean {
+        if (Rez.Styles.system_input__action_menu has :button and
+            keyEvent.getKey() == Rez.Styles.system_input__action_menu.button) {
+            return showMenu();
+        }
+        return false;
     }
 
     function onMenu() as Boolean {

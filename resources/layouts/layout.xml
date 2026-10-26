@@ -1,0 +1,8 @@
+<layouts xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <layout id="MainLayout">
+        <!-- Action menu hint; excluded on products that show their own (Venu 4, vivoactive 6...). -->
+        <bitmap id="actionMenuHint" personality="
+            system_icon_dark__hint_action_menu
+            system_loc__hint_action_menu" />
+    </layout>
+</layouts>
