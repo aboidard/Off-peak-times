@@ -2,47 +2,14 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-class HomeMenuView extends WatchUi.Menu2 {
-    function initialize() {
-        Menu2.initialize({:title => Rez.Strings.AppName});
-        addItem(new WatchUi.MenuItem(Rez.Strings.Settings, null, :settings, null));
-        addItem(new WatchUi.MenuItem(Rez.Strings.Credits, null, :credits, null));
-    }
-}
-
-// replaceCurrent: swap the menu view; otherwise push so Back returns to the caller.
-function openSettings(replaceCurrent as Boolean) as Void {
+function openSettings() as Void {
     var menuView = new SettingsMenuView();
-    var delegate = new SettingsMenuDelegate(menuView);
-    if (replaceCurrent) {
-        WatchUi.switchToView(menuView, delegate, WatchUi.SLIDE_UP);
-    } else {
-        WatchUi.pushView(menuView, delegate, WatchUi.SLIDE_UP);
-    }
+    WatchUi.pushView(menuView, new SettingsMenuDelegate(menuView), WatchUi.SLIDE_UP);
 }
 
-function openCredits(replaceCurrent as Boolean) as Void {
+function openCredits() as Void {
     var creditView = new CreditView();
-    var delegate = new CreditDelegate(creditView);
-    if (replaceCurrent) {
-        WatchUi.switchToView(creditView, delegate, WatchUi.SLIDE_UP);
-    } else {
-        WatchUi.pushView(creditView, delegate, WatchUi.SLIDE_UP);
-    }
-}
-
-class HomeMenuDelegate extends WatchUi.Menu2InputDelegate {
-    function initialize() {
-        Menu2InputDelegate.initialize();
-    }
-
-    function onSelect(item as WatchUi.MenuItem) as Void {
-        if (item.getId() == :settings) {
-            openSettings(true);
-        } else if (item.getId() == :credits) {
-            openCredits(true);
-        }
-    }
+    WatchUi.pushView(creditView, new CreditDelegate(creditView), WatchUi.SLIDE_UP);
 }
 
 class PeriodsDelegate extends WatchUi.Menu2InputDelegate {

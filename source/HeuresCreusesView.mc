@@ -6,100 +6,43 @@ import Toybox.Lang;
 import Toybox.Timer;
 
 class HeuresCreusesView extends WatchUi.View {
-    const GRAB_ZONE = 70;
-    const TICK_MS = 33;
+    // Shortest timer interval: the screen opens right after onSelect returns, as the menu closes.
+    const ACTION_DELAY_MS = 50;
 
     var settings as Settings;
-    var screenWidth as Number;
-    var screenHeight as Number;
-    var drawerWidth as Number;
-    var drawerOffset as Number;
-    var drawerTarget as Number;
-    var drawerTimer as Timer.Timer or Null;
+    var pendingAction as Symbol or Null;
+    var actionTimer as Timer.Timer or Null;
 
     function initialize() {
         View.initialize();
         settings = new Settings();
-        screenWidth = 0;
-        screenHeight = 0;
-        drawerWidth = 0;
-        drawerOffset = 0;
-        drawerTarget = 0;
-        drawerTimer = null;
-    }
-
-    function onLayout(dc as Dc) as Void {
-        screenWidth = dc.getWidth();
-        screenHeight = dc.getHeight();
-        drawerWidth = screenWidth * 60 / 100;
-    }
-
-    function setDrawerOffset(offset as Number) as Void {
-        drawerOffset = offset < 0 ? 0 : (offset > drawerWidth ? drawerWidth : offset);
-        WatchUi.requestUpdate();
-    }
-
-    function isDrawerOpen() as Boolean {
-        return drawerOffset > 0;
-    }
-
-    function isInGrabZone(x as Number) as Boolean {
-        return x >= screenWidth - GRAB_ZONE;
-    }
-
-    function settleDrawer(open as Boolean) as Void {
-        drawerTarget = open ? drawerWidth : 0;
-        stopDrawerTimer();
-        drawerTimer = new Timer.Timer();
-        drawerTimer.start(method(:onDrawerTick), TICK_MS, true);
-    }
-
-    function onDrawerTick() as Void {
-        var diff = drawerTarget - drawerOffset;
-        var step = diff * 40 / 100;
-        if (step == 0) {
-            step = diff > 0 ? 1 : -1;
-        }
-        if (diff == 0 or (diff > 0 and step >= diff) or (diff < 0 and step <= diff)) {
-            drawerOffset = drawerTarget;
-            stopDrawerTimer();
-        } else {
-            drawerOffset += step;
-        }
-        WatchUi.requestUpdate();
-    }
-
-    function stopDrawerTimer() as Void {
-        if (drawerTimer != null) {
-            drawerTimer.stop();
-            drawerTimer = null;
+        pendingAction = null;
+        actionTimer = null;
+        // System hint showing how to open the action menu on this product.
+        if (View has :setActionMenuIndicator) {
+            setActionMenuIndicator({:enabled => true});
         }
     }
 
-    function drawDrawer(dc as Dc) as Void {
-        var panelX = screenWidth - drawerOffset;
-
-        dc.setColor(0x1C1C1C, 0x1C1C1C);
-        if (drawerOffset > 0) {
-            dc.fillRectangle(panelX, 0, drawerOffset, screenHeight);
+    // View operations are not allowed from an ActionMenu, so the selected entry
+    // is opened once the menu has closed.
+    function queueAction(action as Symbol) as Void {
+        pendingAction = action;
+        if (actionTimer != null) {
+            actionTimer.stop();
         }
+        actionTimer = new Timer.Timer();
+        actionTimer.start(method(:runPendingAction), ACTION_DELAY_MS, false);
+    }
 
-        // Tab in the panel color so the handle and the panel read as one piece.
-        dc.fillRoundedRectangle(panelX - 22, screenHeight / 2 - 40, 40, 80, 11);
-
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
-        dc.fillRoundedRectangle(panelX - 14, screenHeight / 2 - 30, 6, 60, 3);
-
-        if (drawerOffset > drawerWidth / 2) {
-            var centerX = panelX + drawerOffset / 2;
-            var justify = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(centerX, screenHeight * 38 / 100, Graphics.FONT_SMALL,
-                        WatchUi.loadResource(Rez.Strings.Settings) as String, justify);
-            dc.drawText(centerX, screenHeight * 62 / 100, Graphics.FONT_SMALL,
-                        WatchUi.loadResource(Rez.Strings.Credits) as String, justify);
-            dc.setColor(0x606060, 0x606060);
-            dc.drawLine(panelX + 20, screenHeight / 2, screenWidth, screenHeight / 2);
+    function runPendingAction() as Void {
+        actionTimer = null;
+        var action = pendingAction;
+        pendingAction = null;
+        if (action == :settings) {
+            openSettings();
+        } else if (action == :credits) {
+            openCredits();
         }
     }
 
@@ -155,88 +98,60 @@ class HeuresCreusesView extends WatchUi.View {
         }
 
         dc.drawText(width / 2, height / 2 + 20, Graphics.FONT_MEDIUM, remainingStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        drawDrawer(dc);
-    }
-
-    function onHide() {
-        stopDrawerTimer();
     }
 }
 
-class HeuresCreusesDelegate extends WatchUi.InputDelegate {
+// Native side menu holding the main view actions; it dismisses itself on selection or back.
+class HomeActionMenu extends WatchUi.ActionMenu {
+    function initialize() {
+        ActionMenu.initialize(null);
+        addItem(new WatchUi.ActionMenuItem({:label => Rez.Strings.Settings}, :settings));
+        addItem(new WatchUi.ActionMenuItem({:label => Rez.Strings.Credits}, :credits));
+    }
+}
+
+class HomeActionMenuDelegate extends WatchUi.ActionMenuDelegate {
     var mainView as HeuresCreusesView;
-    var dragging as Boolean;
-    var dragStartX as Number;
-    var dragStartOffset as Number;
 
     function initialize(view as HeuresCreusesView) {
-        InputDelegate.initialize();
+        ActionMenuDelegate.initialize();
         mainView = view;
-        dragging = false;
-        dragStartX = 0;
-        dragStartOffset = 0;
     }
 
-    function onDrag(dragEvent as DragEvent) as Boolean {
-        var x = dragEvent.getCoordinates()[0];
-        var type = dragEvent.getType();
-        if (type == WatchUi.DRAG_TYPE_START) {
-            dragging = mainView.isDrawerOpen() or mainView.isInGrabZone(x);
-            if (dragging) {
-                mainView.stopDrawerTimer();
-                dragStartX = x;
-                dragStartOffset = mainView.drawerOffset;
-            }
-            return dragging;
-        }
-        if (!dragging) {
-            return false;
-        }
-        mainView.setDrawerOffset(dragStartOffset + dragStartX - x);
-        if (type == WatchUi.DRAG_TYPE_STOP) {
-            dragging = false;
-            mainView.settleDrawer(mainView.drawerOffset > mainView.drawerWidth * 40 / 100);
+    function onSelect(item as WatchUi.ActionMenuItem) as Void {
+        mainView.queueAction(item.getId() as Symbol);
+    }
+}
+
+class HeuresCreusesDelegate extends WatchUi.BehaviorDelegate {
+    // Showing the action menu twice in a row freezes it mid-animation.
+    const MENU_DEBOUNCE_MS = 1000;
+
+    var mainView as HeuresCreusesView;
+    var lastMenuTime as Number;
+
+    function initialize(view as HeuresCreusesView) {
+        BehaviorDelegate.initialize();
+        mainView = view;
+        lastMenuTime = -MENU_DEBOUNCE_MS;
+    }
+
+    function showMenu() as Boolean {
+        var now = System.getTimer();
+        if (now - lastMenuTime >= MENU_DEBOUNCE_MS) {
+            lastMenuTime = now;
+            WatchUi.showActionMenu(new HomeActionMenu(), new HomeActionMenuDelegate(mainView));
         }
         return true;
     }
 
-    function onTap(clickEvent as ClickEvent) as Boolean {
-        var coordinates = clickEvent.getCoordinates();
-        var x = coordinates[0];
-        var y = coordinates[1];
-        if (mainView.isDrawerOpen()) {
-            if (x >= mainView.screenWidth - mainView.drawerOffset) {
-                mainView.stopDrawerTimer();
-                mainView.setDrawerOffset(0);
-                if (y < mainView.screenHeight / 2) {
-                    openSettings(false);
-                } else {
-                    openCredits(false);
-                }
-            } else {
-                mainView.settleDrawer(false);
-            }
-            return true;
-        }
-        if (mainView.isInGrabZone(x)) {
-            mainView.settleDrawer(true);
-            return true;
-        }
-        return false;
+    // Product action menu input, handled by the system: a button, KEY_ENTER or the edge
+    // touch area, depending on the watch. Don't add a swipe handler, it would open it twice.
+    function onActionMenu() as Boolean {
+        return showMenu();
     }
 
-    function onKey(keyEvent as KeyEvent) as Boolean {
-        var key = keyEvent.getKey();
-
-        if (key == WatchUi.KEY_ENTER) {
-            WatchUi.pushView(new HomeMenuView(), new HomeMenuDelegate(), WatchUi.SLIDE_UP);
-            return true;
-        } else if (key == WatchUi.KEY_ESC and mainView.isDrawerOpen()) {
-            mainView.settleDrawer(false);
-            return true;
-        }
-
-        return false;
+    function onMenu() as Boolean {
+        return showMenu();
     }
 }
