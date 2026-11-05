@@ -166,6 +166,35 @@ class Settings {
         return shortestDelay;
     }
 
+    // Follows periods that overlap or touch; null when off-peak hours never end.
+    function minutesUntilEndOfHeuresCreuses(periods as Array<Array<Number>>, nowMinutes as Number) as Number or Null {
+        var elapsed = 0;
+        while (elapsed < 24 * 60) {
+            var minutes = (nowMinutes + elapsed) % (24 * 60);
+            var longestDelay = 0;
+            for (var index = 0; index < periods.size(); index += 1) {
+                var period = periods[index];
+                if (isPeriodActive(period, minutes)) {
+                    if (period[0] == period[1]) {
+                        return null;
+                    }
+                    var delay = period[1] - minutes;
+                    if (delay < 0) {
+                        delay += 24 * 60;
+                    }
+                    if (delay > longestDelay) {
+                        longestDelay = delay;
+                    }
+                }
+            }
+            if (longestDelay == 0) {
+                return elapsed;
+            }
+            elapsed += longestDelay;
+        }
+        return null;
+    }
+
     function getPrecision() as Number {
         var value = Application.Storage.getValue(KEY_PRECISION);
         if (value instanceof Number and
@@ -190,11 +219,14 @@ class Settings {
         return minutes + (step - remainder);
     }
 
-    // Examples: 49min, 1h, 1h05, 2h53.
     function formatRemaining(minutes as Number) as String {
-        var rounded = roundRemaining(minutes);
-        var h = rounded / 60;
-        var m = rounded % 60;
+        return formatDuration(roundRemaining(minutes));
+    }
+
+    // Examples: 49min, 1h, 1h05, 2h53.
+    function formatDuration(minutes as Number) as String {
+        var h = minutes / 60;
+        var m = minutes % 60;
         if (h == 0) {
             return m.toString() + (WatchUi.loadResource(Rez.Strings.MinuteSuffix) as String);
         }

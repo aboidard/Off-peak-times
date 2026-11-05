@@ -23,7 +23,7 @@ Implement and maintain reliable Connect IQ widgets that are compatible with the 
 ## Connect IQ and Monkey C rules
 
 - Check `manifest.xml`, `monkey.jungle`, the sources and the resources before choosing where to make a change. The manifest and the build configuration are authoritative for the application type, devices, API level, permissions and source paths.
-- Keep the `widget` type and the configured devices unless explicitly asked otherwise. In this workspace, the manifest currently declares a Widget for `venu445mm` with `minApiLevel="6.0.0"`; treat these values as the current state to verify, not as constants to copy blindly.
+- Keep the `widget` type and the configured devices unless explicitly asked otherwise. In this workspace, the manifest currently declares a Widget for a list of touchscreen watches with `minApiLevel="5.1.0"`; treat these values as the current state to verify, not as constants to copy blindly.
 - Write Monkey C that complies with the project SDK. Check signatures, types, imports, return values, classes and API levels in the Connect IQ definitions or documentation before using an uncertain API. Do not invent classes such as a dedicated `TimePicker` without confirming they exist for the target.
 - Respect the Connect IQ lifecycle (`Application.AppBase`, views, delegates and glances as needed). Keep responsibilities separate: business logic and storage in dedicated classes, rendering in views, input handling in delegates.
 - A Widget can be suspended or stopped between activations. Do not rely on in-memory state to keep data; use the Connect IQ persistent storage mechanisms when needed. Validate loaded values and provide defaults.
