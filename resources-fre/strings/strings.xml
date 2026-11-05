@@ -16,9 +16,14 @@
     <string id="CreditAuthor">Created by Arnaud Boidard</string>
     <string id="CreditDescription">Off-peak hours schedule</string>
     <string id="NoPeriods" scope="glance">Aucune période configurée</string>
+    <string id="NoPeriodsTitle" scope="glance">Aucune période</string>
+    <string id="NoPeriodsDetail" scope="glance">configurée</string>
     <string id="StatusActive" scope="glance">Heures creuses en cours</string>
     <string id="RemainingTimePrefix">Temps restant : </string>
-    <string id="NextOffPeakPrefix" scope="glance">Prochaine période d'heures creuses dans </string>
+    <string id="NextOffPeakTitle" scope="glance">Prochaine période</string>
+    <string id="NextOffPeakPrefix" scope="glance">dans </string>
+    <string id="ActiveTitle" scope="glance">Heures creuses</string>
+    <string id="ActiveEndPrefix" scope="glance">fin dans </string>
     <string id="HourSuffix" scope="glance"> h </string>
     <string id="MinuteSuffix" scope="glance"> min</string>
     <string id="PeriodsCountNone">Aucune</string>

@@ -16,9 +16,14 @@
     <string id="CreditAuthor">Created by Arnaud Boidard</string>
     <string id="CreditDescription">Off-peak hours schedule</string>
     <string id="NoPeriods" scope="glance">No periods configured</string>
+    <string id="NoPeriodsTitle" scope="glance">No periods</string>
+    <string id="NoPeriodsDetail" scope="glance">configured</string>
     <string id="StatusActive" scope="glance">Off-peak hours active</string>
     <string id="RemainingTimePrefix">Time remaining: </string>
-    <string id="NextOffPeakPrefix" scope="glance">Next OP hours in </string>
+    <string id="NextOffPeakTitle" scope="glance">Next off-peak</string>
+    <string id="NextOffPeakPrefix" scope="glance">in </string>
+    <string id="ActiveTitle" scope="glance">Off-peak hours</string>
+    <string id="ActiveEndPrefix" scope="glance">ends in </string>
     <string id="HourSuffix" scope="glance">h</string>
     <string id="MinuteSuffix" scope="glance">min</string>
     <string id="PeriodsCountNone">None</string>
