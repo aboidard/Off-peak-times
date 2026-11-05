@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Garmin Connect IQ **widget** written in Monkey C ("Heures Creuses" = French electricity off-peak hours). It shows whether the current time is in a user-configured off-peak period, the time until the next one, and a 24h timeline bar centered on "now". Targets: touchscreen watches at API 6.0 (Venu 4, Venu X1, vívoactive 6, fēnix 8/8 Pro/8 Solar/E, Enduro 3, Forerunner 70/170/570/970, D2 Mach 2 Pro, Approach S72) plus the Approach S50 and S70 at API 5.1. Edge bike computers are left out on purpose, and so are the Approach S60/S62 (API 2.4/3.0, too old for `ActionMenu`). Screens range from 260x260 MIP up to 454x454 AMOLED, including the non-round Venu X1. `minApiLevel="5.1.0"`, languages `eng` + `fre`. `manifest.xml` and `monkey.jungle` are authoritative — re-read them rather than trusting these values. `manifest.xml` is generated; edit it through the VS Code Monkey C extension commands.
+Garmin Connect IQ **widget** written in Monkey C ("Heures Creuses" = French electricity off-peak hours). It shows whether the current time is in a user-configured off-peak period, the time until the next one, and a 24h timeline bar centered on "now". Targets: touchscreen watches at API 6.0 (Venu 4, Venu X1, vívoactive 6, fēnix 8/8 Pro/8 Solar/E, Enduro 3, Forerunner 70/170/570/970, D2 Mach 2 Pro, Approach S72) plus the Approach S50 and S70 at API 5.1. Edge bike computers are left out on purpose, and so are the Approach S60/S62 (API 2.4/3.0, too old for `ActionMenu`). The fēnix 8 Solar 47 mm is left out for now: its device profile misses `system_icon_dark__hint_button_right_top.svg`, which breaks the build and the `.iq` export. Screens range from 260x260 MIP up to 454x454 AMOLED, including the non-round Venu X1. `minApiLevel="5.1.0"`, languages `eng` + `fre`. `manifest.xml` and `monkey.jungle` are authoritative — re-read them rather than trusting these values. `manifest.xml` is generated; edit it through the VS Code Monkey C extension commands.
 
 `.github/agents/garmin-connectiq-widget.agent.md` holds detailed project conventions; its key points are summarized below.
 
 ## Build and run (Windows / PowerShell)
 
-There are no tests or linter; validation means compiling with the Monkey C compiler and running in the simulator. The SDK lives under `%APPDATA%\Garmin\ConnectIQ\Sdks\` (use the one selected by the VS Code extension; last verified with 9.1.0). The developer key path comes from the VS Code setting `monkeyC.developerKeyPath` — never copy the key into the repo.
+There are no tests or linter; validation means compiling with the Monkey C compiler and running in the simulator. The SDK lives under `%APPDATA%\Garmin\ConnectIQ\Sdks\` (use the one selected by the VS Code extension; last verified with 9.3.0). The developer key path comes from the VS Code setting `monkeyC.developerKeyPath` — never copy the key into the repo.
 
 ```powershell
 $sdk = '<SDK>'; $key = '<DEVELOPER_KEY>'; $target = 'venu445mm'
